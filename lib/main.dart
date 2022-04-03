@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:stream_demo/stream.dart';
 
@@ -9,6 +12,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: StreamHomePage(),
     );
   }
@@ -25,10 +29,29 @@ class _StreamhomePageState extends State<StreamHomePage> {
   Color? bgColor;
   ColorStream? colorStream;
 
+  // Portion for Random Number
+  int? newNumber;
+  StreamController? numStreamController;
+  NumberStream? numberStream;
   @override
   void initState(){
+    // Commenting old Code
     colorStream = ColorStream();
     changeColor();
+
+    // Code for number generator
+    numberStream = NumberStream();
+    numStreamController = numberStream?.controller;
+    Stream stream = numStreamController!.stream;
+    stream.listen((event) {
+      setState(() {
+        newNumber = event;
+      });
+    }).onError((error){
+      setState(() {
+        newNumber = -1;
+      });
+    });
     super.initState();
   }
   @override
@@ -44,8 +67,24 @@ class _StreamhomePageState extends State<StreamHomePage> {
         title: Text("Stream Demo"),
         backgroundColor: bgColor,
       ),
-      body: Container(
-        color: bgColor,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("$newNumber",style: TextStyle(fontSize: 18)),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all(bgColor)
+                  ),
+                    onPressed: (){
+                      random();
+                    },
+                    child: Text("Generate new ->", style: TextStyle(fontSize: 18),))
+              ],
+            ),
+        ),
       ),
     );
   }
@@ -57,6 +96,14 @@ class _StreamhomePageState extends State<StreamHomePage> {
       });
     });
 
+  }
+
+  // Generate Random Number
+  random(){
+    Random random = Random();
+    // int randomNum = random.nextInt(10);
+    // numberStream?.addNumberToSink(randomNum);
+    numberStream?.addError();
   }
 
 }
