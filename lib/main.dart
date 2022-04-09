@@ -26,6 +26,10 @@ class StreamHomePage extends StatefulWidget {
 }
 
 class _StreamhomePageState extends State<StreamHomePage> {
+  // Stream Subscription
+  StreamSubscription? subscription;
+  StreamSubscription? subscription2;
+  String values = '';
   Color? bgColor;
   ColorStream? colorStream;
 
@@ -35,16 +39,16 @@ class _StreamhomePageState extends State<StreamHomePage> {
   NumberStream? numberStream;
 
   // Stream Tranformers
-  final transformer = StreamTransformer<int, dynamic>.fromHandlers(
-      handleData: (value, sink) {
-        // final abc= value as int;
-        sink.add(value * 10);
-  },
-      handleError: (error, trace, sink){
-        sink.add(-1);
-  },
-      handleDone: (sink) => sink.close()
-      );
+  // final transformer = StreamTransformer<int, dynamic>.fromHandlers(
+  //     handleData: (value, sink) {
+  //       // final abc= value as int;
+  //       sink.add(value * 10);
+  // },
+  //     handleError: (error, trace, sink){
+  //       sink.add(-1);
+  // },
+  //     handleDone: (sink) => sink.close()
+  //     );
   @override
   void initState(){
     // Commenting old Code
@@ -54,17 +58,31 @@ class _StreamhomePageState extends State<StreamHomePage> {
     // Code for number generator
     numberStream = NumberStream();
     numStreamController = numberStream?.controller;
-    Stream stream = numStreamController!.stream;
-    stream.transform(transformer).listen((event) {
+    Stream stream = numStreamController!.stream.asBroadcastStream();
+    subscription = stream.listen((event) {
       setState(() {
-        newNumber = event;
+        values += event.toString() + '-';
       });
-    }).onError((error){
+    });
+    subscription2 = stream.listen((event) {
+      setState(() {
+        values += event.toString() + "-";
+      });
+    });
+
+    subscription?.onError((e){
       setState(() {
         newNumber = -1;
       });
     });
+    subscription?.onDone(() {
+      print("OnDone Method was called");
+
+    });
     super.initState();
+  }
+  void closeStream(){
+    numStreamController?.close();
   }
   @override
   void dispose(){
@@ -83,8 +101,9 @@ class _StreamhomePageState extends State<StreamHomePage> {
         child: Center(
           child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text("$newNumber",style: TextStyle(fontSize: 18)),
+                Text("$values",style: TextStyle(fontSize: 18)),
                 SizedBox(height: 20),
                 ElevatedButton(
                   style: ButtonStyle(
@@ -93,7 +112,16 @@ class _StreamhomePageState extends State<StreamHomePage> {
                     onPressed: (){
                       random();
                     },
-                    child: Text("Generate new ->", style: TextStyle(fontSize: 18),))
+                    child: Text("Generate Random Number", style: TextStyle(fontSize: 18),)),
+                SizedBox(height: 20,),
+                ElevatedButton(
+                    style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(bgColor)
+                    ),
+                    onPressed: (){
+                      closeStream();
+                    },
+                    child: Text("Stop Stream", style: TextStyle(fontSize: 18),))
               ],
             ),
         ),
@@ -114,7 +142,13 @@ class _StreamhomePageState extends State<StreamHomePage> {
   random(){
     Random random = Random();
     int randomNum = random.nextInt(10);
-    numberStream?.addNumberToSink(randomNum);
+    if(!numStreamController!.isClosed){
+      numberStream?.addNumberToSink(randomNum);
+    }else{
+      setState(() {
+        newNumber = -1;
+      });
+    }
     // numberStream?.addError();
   }
 
